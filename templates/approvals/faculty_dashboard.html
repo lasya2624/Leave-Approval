@@ -1,0 +1,55 @@
+{% extends 'approvals/base.html' %}
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+    <h2 style="margin-top: 0;">Faculty Dashboard - {{ profile.get_role_display }}</h2>
+    <p>Welcome, {{ profile.user.first_name }} {{ profile.user.last_name }}. Department: {{ profile.department }}</p>
+</div>
+
+<div class="card">
+    <h2 style="margin-top: 0;">Pending Approval Requests</h2>
+    
+    {% if error_msg %}
+    <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; color: #ef4444;">
+        {{ error_msg }}
+    </div>
+    {% endif %}
+
+    {% if pending_requests %}
+    <table>
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Subject</th>
+                <th>Submitted On</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in pending_requests %}
+            <tr>
+                <td>{{ req.student.user.first_name }} {{ req.student.user.last_name }} ({{ req.student.register_number }})</td>
+                <td>{{ req.subject }}</td>
+                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                <td>
+                    <a href="{% url 'download_letter' req.id %}" target="_blank" class="btn" style="padding: 0.5rem; margin-right: 0.5rem; text-decoration: none; display: inline-block;">View Letter</a>
+                    
+                    <form method="post" style="display:inline-block; margin-top: 0.5rem;">
+                        {% csrf_token %}
+                        <input type="hidden" name="request_id" value="{{ req.id }}">
+                        
+                        {% if profile.role == 'HOD' or profile.role == 'DEAN' %}
+                            <input type="text" name="verification_key" placeholder="Enter Verification Key" required style="width: 200px; padding: 0.5rem; margin-right: 0.5rem; margin-bottom: 0;">
+                        {% endif %}
+                        
+                        <button type="submit" name="approve_request" class="btn btn-accent" style="padding: 0.5rem;">Approve & Sign</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="color: #94a3b8;">No pending requests at the moment.</p>
+    {% endif %}
+</div>
+{% endblock %}

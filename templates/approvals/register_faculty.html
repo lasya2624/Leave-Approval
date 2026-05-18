@@ -1,0 +1,27 @@
+{% extends 'approvals/base.html' %}
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 2rem auto;">
+    <h2 style="margin-top: 0; text-align: center;">Faculty Registration</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <ul class="errorlist">
+                    {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(16, 185, 129, 0.2);">
+            <p style="margin: 0; font-size: 0.9rem; color: #10b981;"><strong>Note:</strong> Uploading your signature image here enables you to apply visual cryptographic stamps on students' leave letters.</p>
+        </div>
+        <button type="submit" class="btn btn-accent" style="width: 100%;">Register</button>
+    </form>
+</div>
+{% endblock %}
