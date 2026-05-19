@@ -47,45 +47,85 @@ def visually_sign_pdf(input_pdf_path, output_pdf_path, signature_image_path, rol
     page = doc[-1] # Put signature on the last page
     
     # Calculate position based on role
-    y_bottom = page.rect.height - 50
-    y_top = y_bottom - 60
+    # Increasing the vertical height of the signature stamp box significantly.
+    # By making the box taller (200 pts) and allowing the boxes to overlap slightly,
+    # the auto-cropped signature image can scale to a massive size.
+    y_bottom = page.rect.height - 20
+    y_top = y_bottom - 200
     
+    # Shifted towards the right and massively widened (width 260)
+    # Since backgrounds are completely transparent, overlapping bounding boxes are perfectly fine!
     if role == 'MENTOR':
-        rect = fitz.Rect(50, y_top, 200, y_bottom)
+        rect = fitz.Rect(30, y_top, 290, y_bottom)
     elif role == 'HOD':
-        rect = fitz.Rect(230, y_top, 380, y_bottom)
+        rect = fitz.Rect(170, y_top, 430, y_bottom)
     elif role == 'DEAN':
-        rect = fitz.Rect(410, y_top, 560, y_bottom)
+        rect = fitz.Rect(310, y_top, 570, y_bottom)
     else:
-        rect = fitz.Rect(50, y_top, 200, y_bottom)
+        rect = fitz.Rect(30, y_top, 290, y_bottom)
         
-    from PIL import Image
-    import io
+    import cv2
+    import numpy as np
     
-    # Process the signature image to extract only the ink (make background transparent)
     try:
-        img = Image.open(signature_image_path).convert("RGBA")
-        datas = img.getdata()
-        newData = []
-        for item in datas:
-            # Calculate luminance to determine if pixel is dark (ink) or light (background)
-            luminance = item[0]*0.299 + item[1]*0.587 + item[2]*0.114
-            if luminance > 180: # Background
-                newData.append((255, 255, 255, 0)) # Transparent
-            else:
-                # Keep the ink but ensure it is fully opaque
-                newData.append((item[0], item[1], item[2], 255))
-        img.putdata(newData)
+        # 1. Load the signature image
+        img_bgr = cv2.imread(signature_image_path)
+        if img_bgr is None:
+            raise ValueError(f"Failed to load image: {signature_image_path}")
+            
+        # 2. Convert to grayscale
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
         
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='PNG')
-        img_bytes = img_byte_arr.getvalue()
+        # 3. Estimate Background (Illumination Map)
+        # Use a large morphological closing kernel to erase the thin signature strokes,
+        # leaving ONLY the background illumination pattern (shadows and gradients).
+        bg_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (51, 51))
+        background = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, bg_kernel)
         
-        # Insert the processed image stream
+        # 4. Correct Illumination
+        # Divide the original image by the background to equalize brightness across the entire image.
+        # Paper (gray/bg = ~1.0 -> 255). Ink (dark/bg = <1.0 -> dark).
+        corrected = np.float32(gray) / (np.float32(background) + 1e-5)
+        corrected = np.clip(corrected * 255, 0, 255).astype(np.uint8)
+        
+        # 5. Apply Otsu's thresholding with THRESH_BINARY_INV
+        # Now that the background is perfectly uniform, Otsu works flawlessly.
+        _, thresh = cv2.threshold(corrected, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        # 6. Apply morphological operations to clean the final mask
+        kernel = np.ones((3, 3), np.uint8)
+        
+        # Morphological closing (3x3 kernel) to fill gaps inside signature strokes
+        closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+        
+        # Morphological opening (3x3 kernel) to remove small background smudges and shadows
+        opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
+        
+        # 6. Split the original BGR channels and merge with the cleaned mask as the alpha channel
+        b, g, r = cv2.split(img_bgr)
+        rgba = [b, g, r, opened]
+        img_rgba = cv2.merge(rgba)
+        
+        # 6.5. Auto-Crop: Find the bounding box of the ink to remove transparent padding
+        # This is CRITICAL to allow PyMuPDF to scale the signature up to the massive 260x200 bounds.
+        y_indices, x_indices = np.nonzero(opened)
+        if len(y_indices) > 0 and len(x_indices) > 0:
+            y_min, y_max = np.min(y_indices), np.max(y_indices)
+            x_min, x_max = np.min(x_indices), np.max(x_indices)
+            img_rgba = img_rgba[y_min:y_max+1, x_min:x_max+1]
+        
+        # 7. Encode as PNG with transparency preserved
+        success, encoded_img = cv2.imencode('.png', img_rgba)
+        if not success:
+            raise ValueError("Failed to encode image to PNG format.")
+        
+        img_bytes = encoded_img.tobytes()
+        
+        # Insert the processed image stream into the PDF
         page.insert_image(rect, stream=img_bytes)
     except Exception as e:
         # Fallback to original image if processing fails
-        print(f"Image processing failed: {e}")
+        print(f"OpenCV Image processing failed: {e}")
         page.insert_image(rect, filename=signature_image_path)
     
     
