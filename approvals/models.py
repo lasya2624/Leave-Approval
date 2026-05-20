@@ -47,12 +47,18 @@ class LeaveRequest(models.Model):
         ('APPROVED', 'Approved'),
         ('REJECTED', 'Rejected'),
     ]
+    APPROVAL_LEVEL_CHOICES = [
+        ('MENTOR', 'Mentor Only'),
+        ('HOD', 'Up to HOD'),
+        ('DEAN', 'Up to Dean'),
+    ]
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='leave_requests')
     mentor = models.ForeignKey(FacultyProfile, on_delete=models.SET_NULL, null=True, related_name='mentor_requests')
     subject = models.CharField(max_length=255)
     original_letter = models.FileField(upload_to='letters/original/')
     signed_letter = models.FileField(upload_to='letters/signed/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING_MENTOR')
+    approval_level = models.CharField(max_length=10, choices=APPROVAL_LEVEL_CHOICES, default='DEAN')
     verification_key = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

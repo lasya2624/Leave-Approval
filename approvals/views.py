@@ -68,7 +68,10 @@ def student_login(request):
     return render(request, 'approvals/student_login.html', {'form': form})
 
 def user_logout(request):
+    is_student = request.user.is_authenticated and request.user.is_student
     logout(request)
+    if is_student:
+        return redirect('student_login')
     return redirect('faculty_login')
 
 def register_student(request):
@@ -133,7 +136,8 @@ def student_dashboard(request):
                     student=profile,
                     mentor=form.cleaned_data['mentor'],
                     subject=form.cleaned_data['subject'],
-                    original_letter=form.cleaned_data['letter']
+                    original_letter=form.cleaned_data['letter'],
+                    approval_level=form.cleaned_data['approval_level']
                 )
                 return redirect('student_dashboard')
         
@@ -163,18 +167,28 @@ def faculty_dashboard(request):
         return redirect('student_dashboard')
     profile = get_object_or_404(FacultyProfile, user=request.user)
     
-    pending_requests = []
+    handled_requests = []
+    audit_logs = []
     error_msg = None
-    
     if profile.role == 'MENTOR':
         pending_requests = LeaveRequest.objects.filter(mentor=profile, status='PENDING_MENTOR')
+        handled_requests = LeaveRequest.objects.filter(mentor=profile).exclude(status='PENDING_MENTOR').order_by('-updated_at')
     elif profile.role == 'HOD':
         pending_requests = LeaveRequest.objects.filter(student__department=profile.department, status='PENDING_HOD')
+        audit_logs = LeaveRequest.objects.filter(student__department=profile.department).exclude(status__in=['PENDING_MENTOR', 'PENDING_STUDENT_HOD', 'PENDING_HOD']).order_by('-updated_at')[:10]
     elif profile.role == 'DEAN':
         pending_requests = LeaveRequest.objects.filter(status='PENDING_DEAN')
+        audit_logs = LeaveRequest.objects.exclude(status__in=['PENDING_MENTOR', 'PENDING_STUDENT_HOD', 'PENDING_HOD', 'PENDING_STUDENT_DEAN', 'PENDING_DEAN']).order_by('-updated_at')[:10]
         
     if request.method == 'POST':
-        if 'approve_request' in request.POST:
+        if 'reject_request' in request.POST:
+            req_id = request.POST.get('request_id')
+            leave_req = get_object_or_404(LeaveRequest, id=req_id)
+            leave_req.status = 'REJECTED'
+            leave_req.save()
+            return redirect('faculty_dashboard')
+            
+        elif 'approve_request' in request.POST:
             req_id = request.POST.get('request_id')
             leave_req = get_object_or_404(LeaveRequest, id=req_id)
             
@@ -183,7 +197,7 @@ def faculty_dashboard(request):
                 key = request.POST.get('verification_key')
                 if key != leave_req.verification_key:
                     error_msg = "Invalid Verification Key! Application existence cannot be confirmed."
-                    return render(request, 'approvals/faculty_dashboard.html', {'profile': profile, 'pending_requests': pending_requests, 'error_msg': error_msg})
+                    return render(request, 'approvals/faculty_dashboard.html', {'profile': profile, 'pending_requests': pending_requests, 'handled_requests': handled_requests, 'audit_logs': audit_logs, 'error_msg': error_msg})
             
             # Sign PDF
             input_pdf = leave_req.signed_letter.path if leave_req.signed_letter.name else leave_req.original_letter.path
@@ -199,16 +213,22 @@ def faculty_dashboard(request):
             leave_req.verification_key = generate_verification_key(f"{leave_req.id}_{profile.role}_{uuid.uuid4().hex}")
             
             if profile.role == 'MENTOR':
-                leave_req.status = 'PENDING_STUDENT_HOD'
+                if leave_req.approval_level == 'MENTOR':
+                    leave_req.status = 'APPROVED'
+                else:
+                    leave_req.status = 'PENDING_STUDENT_HOD'
             elif profile.role == 'HOD':
-                leave_req.status = 'PENDING_STUDENT_DEAN'
+                if leave_req.approval_level == 'HOD':
+                    leave_req.status = 'APPROVED'
+                else:
+                    leave_req.status = 'PENDING_STUDENT_DEAN'
             elif profile.role == 'DEAN':
                 leave_req.status = 'APPROVED'
             
             leave_req.save()
             return redirect('faculty_dashboard')
 
-    return render(request, 'approvals/faculty_dashboard.html', {'profile': profile, 'pending_requests': pending_requests, 'error_msg': error_msg})
+    return render(request, 'approvals/faculty_dashboard.html', {'profile': profile, 'pending_requests': pending_requests, 'handled_requests': handled_requests, 'audit_logs': audit_logs, 'error_msg': error_msg})
 
 @login_required
 def download_letter(request, req_id):

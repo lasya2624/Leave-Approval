@@ -68,9 +68,15 @@ class LoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
 
 class LeaveRequestForm(forms.Form):
+    APPROVAL_LEVEL_CHOICES = [
+        ('MENTOR', 'Mentor Only'),
+        ('HOD', 'Up to HOD'),
+        ('DEAN', 'Up to Dean'),
+    ]
     mentor = forms.ModelChoiceField(queryset=FacultyProfile.objects.none())
     subject = forms.CharField(max_length=255)
-    letter = forms.FileField()
+    approval_level = forms.ChoiceField(choices=APPROVAL_LEVEL_CHOICES, initial='DEAN', label="Required Approval Level")
+    letter = forms.FileField(help_text="Upload your signed leave letter (PDF)")
 
     def __init__(self, *args, **kwargs):
         department = kwargs.pop('department', None)

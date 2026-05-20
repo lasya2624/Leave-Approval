@@ -1,61 +1,116 @@
 {% extends 'approvals/base.html' %}
 {% block content %}
-<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
-    
-    <div>
-        <div class="card">
-            <h2 style="margin-top: 0;">Submit Leave Request</h2>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                {% for field in form %}
-                    <div class="form-group">
-                        <label>{{ field.label }}</label>
-                        {{ field }}
-                    </div>
-                {% endfor %}
-                <button type="submit" name="submit_request" class="btn" style="width: 100%;">Submit Request</button>
-            </form>
+<div class="fade-in">
+    <!-- Profile Banner -->
+    <div class="profile-banner">
+        <div class="profile-info">
+            <h2>Welcome, {{ user.first_name }} {{ user.last_name }}</h2>
+            <p>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
+                Register No: {{ user.student_profile.register_number }} 
+                <span class="role-badge">{{ user.student_profile.department }}</span>
+            </p>
         </div>
     </div>
 
-    <div>
-        <div class="card">
-            <h2 style="margin-top: 0;">Your Requests</h2>
-            {% if requests %}
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon stat-blue">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <div class="stat-info">
+                <h3>Total Requests</h3>
+                <p id="stat-total">{{ requests|length }}</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-yellow">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="stat-info">
+                <h3>Pending</h3>
+                <p id="stat-pending">0</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon stat-green">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="stat-info">
+                <h3>Approved</h3>
+                <p id="stat-approved">0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Form -->
+    <div class="card">
+        <h2 style="margin-top: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="24" height="24" fill="none" stroke="var(--primary-color)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            New Request
+        </h2>
+        <form method="post" enctype="multipart/form-data" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end; margin-top: 1.5rem;">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="margin-bottom: 0.3rem; display: block;">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" name="submit_request" class="btn" style="height: 100%; font-size: 1.15rem; padding: 1rem 1.5rem; font-weight: 700; min-height: 50px;">Submit Request</button>
+        </form>
+    </div>
+
+    <!-- Main Content Table -->
+    <div class="card" style="margin-top: 2rem;">
+        <h2 style="margin-top: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="24" height="24" fill="none" stroke="var(--accent-color)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            Request History
+        </h2>
+        
+        {% if requests %}
+        <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
                         <th>Subject</th>
                         <th>Mentor</th>
                         <th>Status</th>
-                        <th>Key / Action</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for req in requests %}
                     <tr>
-                        <td>{{ req.subject }}</td>
+                        <td style="font-weight: 500;">{{ req.subject }}</td>
                         <td>{{ req.mentor }}</td>
-                        <td><span class="status-badge status-{{ req.status }}">{{ req.get_status_display }}</span></td>
+                        <td><span class="status-badge status-{{ req.status }} req-status-hook" data-status="{{ req.status }}">{{ req.get_status_display }}</span></td>
                         <td>
                             {% if req.status != 'PENDING_MENTOR' %}
-                                <div style="font-size: 0.8rem; margin-bottom: 0.5rem; word-break: break-all; color: #10b981;">
-                                    Key: {{ req.verification_key }}
-                                </div>
-                                <a href="{% url 'download_letter' req.id %}" target="_blank" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Download Letter</a>
+                                {% if req.status != 'APPROVED' %}
+                                    <details style="margin-bottom: 0.5rem;">
+                                        <summary class="btn" onclick="this.textContent = this.parentElement.hasAttribute('open') ? 'Show Key' : 'Hide Key'" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; display: inline-block; cursor: pointer; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); box-shadow: none;">Show Key</summary>
+                                        <div style="font-size: 0.75rem; margin-top: 0.5rem; word-break: break-all; color: #10b981; background: rgba(16,185,129,0.1); padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block;">
+                                            Key: <strong>{{ req.verification_key }}</strong>
+                                        </div>
+                                    </details>
+                                {% endif %}
+                                <div style="margin-bottom: 0.5rem;"></div>
+                                <a href="{% url 'download_letter' req.id %}" target="_blank" class="btn link-hover" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: rgba(255,255,255,0.1); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">View PDF</a>
                             {% endif %}
                             
                             {% if req.status == 'PENDING_STUDENT_HOD' %}
                                 <form method="post" style="display:inline-block; margin-top: 0.5rem;">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
-                                    <button type="submit" name="request_hod" class="btn btn-accent" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Request HOD Approval</button>
+                                    <button type="submit" name="request_hod" class="btn btn-accent pulse" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Push to HOD</button>
                                 </form>
                             {% elif req.status == 'PENDING_STUDENT_DEAN' %}
                                 <form method="post" style="display:inline-block; margin-top: 0.5rem;">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
-                                    <button type="submit" name="request_dean" class="btn btn-accent" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Request Dean Approval</button>
+                                    <button type="submit" name="request_dean" class="btn btn-accent pulse" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Push to Dean</button>
                                 </form>
                             {% endif %}
                         </td>
@@ -63,11 +118,35 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-                <p style="color: #94a3b8;">No leave requests submitted yet.</p>
-            {% endif %}
         </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem 1rem;">
+                <svg width="64" height="64" fill="none" stroke="#334155" viewBox="0 0 24 24" style="margin-bottom: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                <p style="color: #94a3b8; font-size: 1.1rem; margin: 0;">No leave requests submitted yet.</p>
+                <p style="color: #64748b; font-size: 0.9rem;">Submit a new request using the form on the left.</p>
+            </div>
+        {% endif %}
     </div>
-
 </div>
+
+<!-- Frontend Stat Calculator -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const statuses = document.querySelectorAll('.req-status-hook');
+        let approved = 0;
+        let pending = 0;
+        
+        statuses.forEach(el => {
+            const status = el.getAttribute('data-status');
+            if (status === 'APPROVED') {
+                approved++;
+            } else {
+                pending++;
+            }
+        });
+        
+        document.getElementById('stat-approved').innerText = approved;
+        document.getElementById('stat-pending').innerText = pending;
+    });
+</script>
 {% endblock %}

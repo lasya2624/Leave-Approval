@@ -1,55 +1,188 @@
 {% extends 'approvals/base.html' %}
 {% block content %}
-<div class="card" style="margin-bottom: 2rem;">
-    <h2 style="margin-top: 0;">Faculty Dashboard - {{ profile.get_role_display }}</h2>
-    <p>Welcome, {{ profile.user.first_name }} {{ profile.user.last_name }}. Department: {{ profile.department }}</p>
-</div>
+<div class="fade-in">
+    <!-- Profile Banner -->
+    <div class="profile-banner">
+        <div class="profile-info">
+            <h2>Welcome, {{ profile.user.first_name }} {{ profile.user.last_name }}</h2>
+            <p>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                Department: {{ profile.department }}
+                <span class="role-badge">{{ profile.get_role_display }}</span>
+            </p>
+        </div>
+    </div>
 
-<div class="card">
-    <h2 style="margin-top: 0;">Pending Approval Requests</h2>
-    
-    {% if error_msg %}
-    <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; color: #ef4444;">
-        {{ error_msg }}
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card" style="grid-column: span 2;">
+            <div class="stat-icon stat-yellow">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="stat-info">
+                <h3>Action Required</h3>
+                <p>{{ pending_requests|length }} <span style="font-size: 1rem; color: #94a3b8; font-weight: 400;">Pending Approvals</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="24" height="24" fill="none" stroke="var(--accent-color)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            Approval Queue
+        </h2>
+        
+        {% if error_msg %}
+        <div style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; color: #fca5a5; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {{ error_msg }}
+        </div>
+        {% endif %}
+
+        {% if pending_requests %}
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Submitted On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in pending_requests %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600; color: white;">{{ req.student.user.first_name }} {{ req.student.user.last_name }}</div>
+                            <div style="font-size: 0.8rem; color: #94a3b8;">{{ req.student.register_number }}</div>
+                        </td>
+                        <td style="font-weight: 500;">{{ req.subject }}</td>
+                        <td>{{ req.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                                <a href="{% url 'download_letter' req.id %}" target="_blank" class="btn link-hover" style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.1); box-shadow: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap;">View PDF</a>
+                                
+                                <form method="post" style="display:flex; margin: 0; gap: 0.5rem;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    
+                                    {% if profile.role == 'HOD' or profile.role == 'DEAN' %}
+                                        <div class="input-group">
+                                            <input type="text" name="verification_key" placeholder="Enter Verification Key" required style="width: 200px;">
+                                            <button type="submit" name="approve_request" class="btn btn-accent pulse">Approve</button>
+                                        </div>
+                                    {% else %}
+                                        <button type="submit" name="approve_request" class="btn btn-accent pulse" style="padding: 0.5rem 1rem;">Approve & Sign</button>
+                                    {% endif %}
+                                    <button type="submit" name="reject_request" formnovalidate class="btn" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);">Reject</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem 1rem;">
+                <svg width="64" height="64" fill="none" stroke="#334155" viewBox="0 0 24 24" style="margin-bottom: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <p style="color: #94a3b8; font-size: 1.1rem; margin: 0;">You're all caught up!</p>
+                <p style="color: #64748b; font-size: 0.9rem;">No pending requests at the moment.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Supervision History (Mentors Only) -->
+    {% if profile.role == 'MENTOR' %}
+    <div class="card" style="margin-top: 2rem;">
+        <h2 style="margin-top: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            Mentored Students History
+        </h2>
+        
+        {% if handled_requests %}
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Processed On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in handled_requests %}
+                    <tr style="opacity: 0.85;">
+                        <td>
+                            <div style="font-weight: 600; color: white;">{{ req.student.user.first_name }} {{ req.student.user.last_name }}</div>
+                            <div style="font-size: 0.8rem; color: #94a3b8;">{{ req.student.register_number }}</div>
+                        </td>
+                        <td style="font-weight: 500;">{{ req.subject }}</td>
+                        <td><span class="status-badge status-{{ req.status }}">{{ req.get_status_display }}</span></td>
+                        <td>{{ req.updated_at|date:"M d, Y" }}</td>
+                        <td>
+                            <a href="{% url 'download_letter' req.id %}" target="_blank" class="btn link-hover" style="padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.05); box-shadow: none; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; white-space: nowrap;">View Document</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div style="text-align: center; padding: 2rem 1rem;">
+                <p style="color: #64748b; font-size: 0.95rem; margin: 0;">No past students/requests have been mentored yet.</p>
+            </div>
+        {% endif %}
     </div>
     {% endif %}
 
-    {% if pending_requests %}
-    <table>
-        <thead>
-            <tr>
-                <th>Student</th>
-                <th>Subject</th>
-                <th>Submitted On</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for req in pending_requests %}
-            <tr>
-                <td>{{ req.student.user.first_name }} {{ req.student.user.last_name }} ({{ req.student.register_number }})</td>
-                <td>{{ req.subject }}</td>
-                <td>{{ req.created_at|date:"M d, Y" }}</td>
-                <td>
-                    <a href="{% url 'download_letter' req.id %}" target="_blank" class="btn" style="padding: 0.5rem; margin-right: 0.5rem; text-decoration: none; display: inline-block;">View Letter</a>
-                    
-                    <form method="post" style="display:inline-block; margin-top: 0.5rem;">
-                        {% csrf_token %}
-                        <input type="hidden" name="request_id" value="{{ req.id }}">
-                        
-                        {% if profile.role == 'HOD' or profile.role == 'DEAN' %}
-                            <input type="text" name="verification_key" placeholder="Enter Verification Key" required style="width: 200px; padding: 0.5rem; margin-right: 0.5rem; margin-bottom: 0;">
-                        {% endif %}
-                        
-                        <button type="submit" name="approve_request" class="btn btn-accent" style="padding: 0.5rem;">Approve & Sign</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-        <p style="color: #94a3b8;">No pending requests at the moment.</p>
+    <!-- Audit Logs (HOD / DEAN Only) -->
+    {% if profile.role != 'MENTOR' %}
+    <div id="audit-logs" class="card" style="margin-top: 2rem;">
+        <h2 style="margin-top: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Audit Logs (Recent Approvals)
+        </h2>
+        
+        {% if audit_logs %}
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Processed On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr style="opacity: 0.85;">
+                        <td>
+                            <div style="font-weight: 600; color: white;">{{ log.student.user.first_name }} {{ log.student.user.last_name }}</div>
+                            <div style="font-size: 0.8rem; color: #94a3b8;">{{ log.student.register_number }}</div>
+                        </td>
+                        <td style="font-weight: 500;">{{ log.subject }}</td>
+                        <td><span class="status-badge status-{{ log.status }}">{{ log.get_status_display }}</span></td>
+                        <td>{{ log.updated_at|date:"M d, Y" }}</td>
+                        <td>
+                            <a href="{% url 'download_letter' log.id %}" target="_blank" class="btn link-hover" style="padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.05); box-shadow: none; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; white-space: nowrap;">View Document</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div style="text-align: center; padding: 2rem 1rem;">
+                <p style="color: #64748b; font-size: 0.95rem; margin: 0;">No recent approvals found.</p>
+            </div>
+        {% endif %}
+    </div>
     {% endif %}
 </div>
 {% endblock %}

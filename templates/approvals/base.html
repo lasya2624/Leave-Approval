@@ -92,7 +92,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 95%;
             margin: 3rem auto;
             padding: 0 2rem;
             flex-grow: 1;
@@ -200,6 +200,7 @@
             text-align: left;
             padding: 1.25rem 1rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 1.05rem;
         }
 
         th {
@@ -207,7 +208,7 @@
             font-weight: 600;
             color: #94a3b8;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             letter-spacing: 0.05em;
         }
         
@@ -251,6 +252,98 @@
             transform: scaleX(1);
             transform-origin: bottom left;
         }
+
+        /* NEW DASHBOARD UI UTILITIES */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 2.8fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .stat-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1.5rem;
+        }
+
+        .stat-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .stat-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .stat-yellow { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+        .stat-info h3 { margin: 0; font-size: 1.1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        .stat-info p { margin: 0.25rem 0 0 0; font-size: 2.5rem; font-weight: 700; color: white; }
+
+        .profile-banner {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-banner::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; width: 300px; height: 100%;
+            background: radial-gradient(circle at 100% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+        }
+
+        .profile-info { position: relative; z-index: 1; }
+        .profile-info h2 { margin: 0 0 0.5rem 0; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
+        .profile-info p { margin: 0; color: #94a3b8; font-size: 1.05rem; display: flex; align-items: center; gap: 0.75rem; }
+        
+        .role-badge { 
+            background: rgba(59, 130, 246, 0.2); 
+            color: #60a5fa; 
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            padding: 0.25rem 0.75rem; 
+            border-radius: 999px; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            letter-spacing: 0.5px;
+        }
+
+        .input-group { display: flex; align-items: center; }
+        .input-group input { margin-bottom: 0; border-radius: 8px 0 0 8px; border-right: none; }
+        .input-group button { border-radius: 0 8px 8px 0; margin-bottom: 0; padding: 0.875rem 1rem; }
+        
+        .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
     </style>
 </head>
 <body>
@@ -265,14 +358,22 @@
             <h1>Leave Approval Section</h1>
         {% endif %}
         
-        <div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
             {% if user.is_authenticated %}
                 {% if user.is_student %}
-                    <a href="{% url 'student_dashboard' %}">Dashboard</a>
+                    <a href="{% url 'student_dashboard' %}" class="link-hover">Dashboard</a>
+                    <a href="{% url 'logout' %}" style="margin-left: 2rem; border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.4rem 0.8rem; border-radius: 8px; color: #fca5a5;">
+                        Logout ({{ user.student_profile.register_number }})
+                    </a>
                 {% else %}
-                    <a href="{% url 'faculty_dashboard' %}">Dashboard</a>
+                    <a href="{% url 'faculty_dashboard' %}" class="link-hover">Dashboard</a>
+                    {% if profile and profile.role != 'MENTOR' or user.faculty_profile.role != 'MENTOR' %}
+                        <a href="#audit-logs" class="link-hover">Audit Logs</a>
+                    {% endif %}
+                    <a href="{% url 'logout' %}" style="margin-left: 2rem; border: 1px solid rgba(239, 68, 68, 0.4); padding: 0.4rem 0.8rem; border-radius: 8px; color: #fca5a5;">
+                        Logout ({{ user.faculty_profile.register_number }})
+                    </a>
                 {% endif %}
-                <a href="{% url 'logout' %}">Logout ({{ user.username }})</a>
             {% endif %}
         </div>
     </div>
