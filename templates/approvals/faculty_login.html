@@ -1,41 +1,199 @@
 {% extends 'approvals/base.html' %}
 {% block content %}
-<div style="text-align: center; margin-top: 3rem; margin-bottom: 2rem; animation: fadeInDown 0.8s ease-out;">
-    <h1 style="font-size: 3rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #10b981, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; drop-shadow: 0 4px 6px rgba(0,0,0,0.1);">Faculty Portal</h1>
+<style>
+    /* Fascinating Animated Design for Faculty Login */
+    .animated-bg {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background: #0f172a;
+    }
+    .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.5;
+        animation: floatOrb 15s infinite alternate ease-in-out;
+    }
+    .orb-1 {
+        width: 400px; height: 400px;
+        background: #10b981; /* Emerald */
+        top: -10%; left: -10%;
+        animation-delay: 0s;
+    }
+    .orb-2 {
+        width: 350px; height: 350px;
+        background: #0ea5e9; /* Sky Blue */
+        bottom: -10%; right: -10%;
+        animation-delay: -5s;
+    }
+    .orb-3 {
+        width: 250px; height: 250px;
+        background: #34d399; /* Light Green */
+        top: 40%; left: 40%;
+        animation-delay: -10s;
+    }
+
+    @keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(50px, -50px) scale(1.1); }
+        66% { transform: translate(-30px, 40px) scale(0.9); }
+        100% { transform: translate(0, 0) scale(1); }
+    }
+
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 80vh;
+        z-index: 10;
+    }
+
+    .login-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, #34d399, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        drop-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        opacity: 0;
+        transform: translateY(-30px);
+        animation: fadeInDown 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .login-card-animated {
+        background: rgba(30, 41, 59, 0.6);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255,255,255,0.02);
+        border-radius: 24px;
+        padding: 3rem 2.5rem;
+        width: 100%;
+        max-width: 440px;
+        position: relative;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(40px);
+        animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+    }
+
+    @keyframes fadeInDown {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUpFade {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Shimmer effect inside the card */
+    .login-card-animated::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%; width: 50%; height: 100%;
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
+        transform: skewX(-20deg);
+        animation: shimmer 6s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { left: -100%; }
+        20% { left: 200%; }
+        100% { left: 200%; }
+    }
+
+    .form-group input {
+        background: rgba(15, 23, 42, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        padding: 1rem !important;
+        transition: all 0.4s ease !important;
+    }
+
+    .form-group input:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
+        transform: translateY(-2px);
+    }
+
+    .btn-animated {
+        background: linear-gradient(135deg, #10b981, #0ea5e9);
+        border: none;
+        color: white;
+        border-radius: 12px;
+        font-weight: 700;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-animated:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+    }
+
+    .btn-animated:active {
+        transform: translateY(1px);
+    }
+
+    /* Simple pulse for the subtitle */
+    .pulse-text {
+        animation: pulseText 2s infinite alternate;
+    }
+    
+    @keyframes pulseText {
+        from { opacity: 0.7; }
+        to { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+    }
+</style>
+
+<!-- Animated Background -->
+<div class="animated-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 </div>
 
-<div class="card fade-in" style="max-width: 420px; margin: 0 auto 4rem auto; position: relative; overflow: hidden;">
-    <div style="position: absolute; top: -50px; left: -50px; width: 100px; height: 100px; background: rgba(16, 185, 129, 0.2); border-radius: 50%; filter: blur(30px);"></div>
-    <div style="position: absolute; bottom: -50px; right: -50px; width: 100px; height: 100px; background: rgba(59, 130, 246, 0.2); border-radius: 50%; filter: blur(30px);"></div>
+<div class="login-container">
+    <h1 class="login-title">Permission Approval Section</h1>
     
-    <h2 style="margin-top: 0; text-align: center; font-weight: 600; font-size: 1.8rem; margin-bottom: 2rem;">Faculty Login</h2>
-    
-    <form method="post" style="position: relative; z-index: 1;">
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-            <div class="errorlist" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 1rem; border-radius: 4px;">
-                {% for error in form.non_field_errors %}
-                    <p style="margin:0;">{{ error }}</p>
-                {% endfor %}
+    <div class="login-card-animated">
+        <h2 class="pulse-text" style="margin-top: 0; text-align: center; font-weight: 600; font-size: 1.8rem; margin-bottom: 2.5rem; color: #f8fafc;">
+            Faculty Access
+        </h2>
+        
+        <form method="post" style="position: relative; z-index: 1;">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="errorlist" style="background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; animation: slideUpFade 0.3s ease-out;">
+                    {% for error in form.non_field_errors %}
+                        <p style="margin:0; color: #fca5a5;">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="color: #94a3b8; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; display: block;">College Email Address</label>
+                {{ form.email }}
             </div>
-        {% endif %}
-        
-        <div class="form-group">
-            <label>College Email Address</label>
-            {{ form.email }}
-        </div>
-        
-        <div class="form-group">
-            <label>Password</label>
-            {{ form.password }}
-        </div>
-        
-        <button type="submit" class="btn btn-accent" style="width: 100%; margin-top: 1rem; margin-bottom: 1.5rem; padding: 0.875rem; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px;">Access Dashboard</button>
-        
-        <div style="text-align: center; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-            <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #cbd5e1;">Not Registered?</p>
-            <a href="{% url 'register_faculty' %}" class="link-hover" style="color: var(--accent-color); text-decoration: none; font-weight: 600; display: inline-block;">Create an Account</a>
-        </div>
-    </form>
+            
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="color: #94a3b8; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; display: block;">Password</label>
+                {{ form.password }}
+            </div>
+            
+            <button type="submit" class="btn btn-animated" style="width: 100%; padding: 1rem; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1.5px;">Access Dashboard</button>
+            
+            <div style="text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #cbd5e1;">Not Registered?</p>
+                <a href="{% url 'register_faculty' %}" class="link-hover" style="color: #34d399; text-decoration: none; font-weight: 600; display: inline-block; font-size: 1.05rem;">Create an Account</a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}
